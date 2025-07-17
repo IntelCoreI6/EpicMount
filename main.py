@@ -1,7 +1,27 @@
 import os
 import json
 import string
+import time
 path = r"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
+
+def restart_epic_launcher():
+    """Closes and restarts the Epic Games Launcher."""
+    launcher_path = r"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe"
+
+    print("Closing Epic Games Launcher...")
+    # Use taskkill to force the launcher to close. "> nul 2>&1" suppresses output.
+    os.system("taskkill /f /im EpicGamesLauncher.exe > nul 2>&1")
+    
+    # Wait a few seconds for the process to fully terminate
+    time.sleep(5)
+
+    if os.path.exists(launcher_path):
+        print("Restarting Epic Games Launcher...")
+        os.startfile(launcher_path)
+        input("Press enter when epic games is launched")
+    else:
+        print(f"Error: Epic Games Launcher not found at {launcher_path}")
+        print("Please update the 'launcher_path' variable with the correct location.")
 
 def get_drive_letters():
     drives = []
@@ -54,7 +74,8 @@ class game():
         self.name = data["DisplayName"]
         self.installPath = data["InstallLocation"]
         self.version =  data["AppVersionString"] # format: 1.130.2989309, can have as many dots as possible and even strings in between so watch out
-        if data["InstallLocation"].split(":")[0] == "C":
+        self.drive = data["InstallLocation"].split(":")[0]
+        if self.drive == "C":
             self.external = False
         else:
             self.external = True    
@@ -72,6 +93,13 @@ class game():
         with open(self.path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         self.installPath = data["InstallLocation"]
+    
+    def remount(self, drive_letter):
+        self.update_path("A")
+        restart_epic_launcher()
+        self.update_path(drive_letter)
+        restart_epic_launcher()
+        print("reaseating complete")
         
         
         
@@ -88,7 +116,8 @@ for filename in os.listdir(path):
 
 
 for g in game.instances:
-    print(g)
+    if game.instances[g].external:
+        print(g)
 
 print(game.instances)
 for k in game.instances:
@@ -96,7 +125,7 @@ for k in game.instances:
     print(f"before {g.installPath}")
     if g.external == True:
         if input(f"Do you want to move {g.name}? Y/N") == "Y":
-            g.update_path(input("Where do you want to move this file"))
+            g.remount(input("Where do you want to move this file"))
 
 
 
